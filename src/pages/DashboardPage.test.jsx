@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from '../app/ThemeProvider.jsx'
+import { ToastProvider } from '../app/ToastProvider.jsx'
 import { DashboardPage } from './DashboardPage.jsx'
 
 const authMocks = vi.hoisted(() => ({
@@ -17,13 +18,15 @@ vi.mock('../features/auth/context/useAuth.js', () => ({
 function renderDashboard() {
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <Routes>
-          <Route element={<DashboardPage />} path="/dashboard" />
-          <Route element={<p>Upload page</p>} path="/documents/upload" />
-          <Route element={<p>Login page</p>} path="/login" />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/dashboard']}>
+          <Routes>
+            <Route element={<DashboardPage />} path="/dashboard" />
+            <Route element={<p>Upload page</p>} path="/documents/upload" />
+            <Route element={<p>Login page</p>} path="/login" />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </ThemeProvider>,
   )
 }
@@ -34,7 +37,7 @@ describe('DashboardPage logout', () => {
     vi.clearAllMocks()
   })
 
-  it('shows sample documents with unavailable action buttons', () => {
+  it('shows sample documents with action buttons and download all', () => {
     renderDashboard()
 
     const documentList = screen.getByRole('list', {
@@ -46,15 +49,18 @@ describe('DashboardPage logout', () => {
     expect(within(documentList).getAllByRole('listitem')).toHaveLength(5)
     expect(within(documentList).getByText('Passport Photo.jpg')).toBeVisible()
     expect(
+      screen.getByRole('button', { name: 'Download all documents' }),
+    ).toBeEnabled()
+    expect(
       within(documentList).getByRole('button', {
         name: 'View Passport Photo.jpg (coming soon)',
       }),
     ).toBeDisabled()
     expect(
       within(documentList).getByRole('button', {
-        name: 'Update Passport Photo.jpg (coming soon)',
+        name: 'Download Passport Photo.jpg',
       }),
-    ).toBeDisabled()
+    ).toBeEnabled()
     expect(
       within(documentList).getByRole('button', {
         name: 'Delete Passport Photo.jpg (coming soon)',

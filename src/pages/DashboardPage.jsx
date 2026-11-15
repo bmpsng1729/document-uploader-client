@@ -1,20 +1,54 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ThemeToggle } from '../app/ThemeToggle.jsx'
+import { ToastContext } from '../app/ToastContext.js'
 import { useAuth } from '../features/auth/context/useAuth.js'
 import { useUploadedDocuments } from '../features/documents/context/UploadedDocumentsContext.js'
 import { formatBytes } from '../features/documents/utils/formatBytes.js'
 import { sampleDocuments } from '../features/documents/data/sampleDocuments.js'
 
+function triggerFileDownload(document) {
+  const sampleContent = `Document: ${document.name}\nType: ${document.type}\nSize: ${formatBytes(document.sizeBytes)}\nUpdated: ${document.updatedAt || 'N/A'}`
+  const blob = new Blob([sampleContent], {
+    type: document.mimeType || 'text/plain',
+  })
+  const url = URL.createObjectURL(blob)
+  const anchor = window.document.createElement('a')
+  anchor.href = url
+  anchor.download = document.name
+  window.document.body.appendChild(anchor)
+  anchor.click()
+  window.document.body.removeChild(anchor)
+  URL.revokeObjectURL(url)
+}
+
 export function DashboardPage() {
   const { user, logout } = useAuth()
   const { documents: uploadedDocuments } = useUploadedDocuments()
+  const toast = useContext(ToastContext)
   const navigate = useNavigate()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const logoutButtonRef = useRef(null)
   const cancelButtonRef = useRef(null)
   const confirmButtonRef = useRef(null)
   const dialogWasOpen = useRef(false)
+
+  const displayedDocuments =
+    uploadedDocuments.length > 0 ? uploadedDocuments : sampleDocuments
+
+  const handleDownload = useCallback((document) => {
+    triggerFileDownload(document)
+  }, [])
+
+  const handleDownloadAll = useCallback(() => {
+    if (displayedDocuments.length === 0) return
+    toast?.showSuccess?.(`Downloading ${displayedDocuments.length} documents…`)
+    displayedDocuments.forEach((doc, index) => {
+      setTimeout(() => {
+        triggerFileDownload(doc)
+      }, index * 200)
+    })
+  }, [displayedDocuments, toast])
 
   useEffect(() => {
     if (logoutDialogOpen) {
@@ -111,6 +145,29 @@ export function DashboardPage() {
                   ? 'Uploaded this session'
                   : 'Sample data'}
               </span>
+              <button
+                aria-label="Download all documents"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-mint-300 bg-white px-4 py-2 text-sm font-semibold text-brand-dark transition-colors hover:bg-mint-100 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={displayedDocuments.length === 0}
+                onClick={handleDownloadAll}
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="size-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+                Download all
+              </button>
               <Link
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-brand px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-mint-300"
                 to="/documents/upload"
@@ -194,27 +251,39 @@ export function DashboardPage() {
                       </div>
                     </div>
 
-                    <span className="inline-flex w-fit items-center gap-2 rounded-full bg-mint-100 px-3 py-1 text-xs font-semibold text-brand-dark">
-                      <span
-                        aria-hidden="true"
-                        className="size-1.5 rounded-full bg-brand-dark"
-                      />
-                      Uploaded
-                    </span>
-
                     <div className="grid grid-cols-3 gap-2 sm:flex">
-                      {['View', 'Update', 'Delete'].map((action) => (
-                        <button
-                          aria-label={`${action} ${document.name} (coming soon)`}
-                          className="min-h-10 rounded-control border border-mint-300 px-3 text-xs font-semibold text-muted disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:text-sm"
-                          disabled
-                          key={action}
-                          title="Available when document actions are connected"
-                          type="button"
-                        >
-                          {action}
-                        </button>
-                      ))}
+                      {['View', 'Download', 'Delete'].map((action) => {
+                        const isDownload = action === 'Download'
+                        return (
+                          <button
+                            aria-label={
+                              isDownload
+                                ? `Download ${document.name}`
+                                : `${action} ${document.name} (coming soon)`
+                            }
+                            className={
+                              isDownload
+                                ? 'min-h-10 rounded-control border border-mint-300 px-3 text-xs font-semibold text-brand-dark transition-colors hover:bg-mint-100 sm:px-4 sm:text-sm'
+                                : 'min-h-10 rounded-control border border-mint-300 px-3 text-xs font-semibold text-muted disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:text-sm'
+                            }
+                            disabled={!isDownload}
+                            key={action}
+                            onClick={
+                              isDownload
+                                ? () => handleDownload(document)
+                                : undefined
+                            }
+                            title={
+                              isDownload
+                                ? `Download ${document.name}`
+                                : 'Available when document actions are connected'
+                            }
+                            type="button"
+                          >
+                            {action}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 </article>
