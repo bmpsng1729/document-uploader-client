@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   getCurrentUser,
   login,
-  loginWithGoogle,
   logout,
   refreshSession,
   signup,
@@ -65,9 +64,8 @@ describe('authApi', () => {
         email: 'riley@example.com',
         password: 'secure123',
       }),
-    ).resolves.toEqual(session)
+    ).resolves.toEqual(session    )
     await login({ email: 'riley@example.com', password: 'secure123' })
-    await loginWithGoogle('google-id-token')
     await refreshSession()
     expect(getAccessToken()).toBe('memory-only-token')
     await logout()
@@ -90,11 +88,6 @@ describe('authApi', () => {
       },
       {
         method: 'post',
-        url: '/api/v1/auth/google',
-        data: { idToken: 'google-id-token' },
-      },
-      {
-        method: 'post',
         url: '/api/v1/auth/refresh',
         data: undefined,
       },
@@ -107,6 +100,64 @@ describe('authApi', () => {
     ])
     expect(getAccessToken()).toBeNull()
     expect(apiClient.defaults.withCredentials).toBe(true)
+  })
+
+  it.each([
+    { message: 'Account created' },
+    {
+      accessToken: 'partial-token',
+      user: { id: 'user-1', email: 'riley@example.com' },
+    },
+  ])(
+    'accepts successful signup responses without a complete session',
+    async (data) => {
+      apiClient.defaults.adapter = async (config) => ({
+        config,
+        data,
+        headers: {},
+        status: 201,
+        statusText: 'Created',
+      })
+
+      await expect(
+        signup({
+          name: 'Riley Example',
+          email: 'riley@example.com',
+          password: 'secure123',
+        }),
+      ).resolves.toEqual({ authenticated: false })
+      expect(getAccessToken()).toBeNull()
+    },
+  )
+
+  it('normalizes flat signup user fields and stores its access token', async () => {
+    const data = {
+      userId: 'user-2',
+      name: 'Riley Example',
+      email: 'riley@example.com',
+      accessToken: 'signup-token',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+    }
+    apiClient.defaults.adapter = async (config) => ({
+      config,
+      data,
+      headers: {},
+      status: 201,
+      statusText: 'Created',
+    })
+
+    await expect(
+      signup({
+        name: 'Riley Example',
+        email: 'riley@example.com',
+        password: 'secure123',
+      }),
+    ).resolves.toEqual({
+      ...data,
+      user: { id: 'user-2', name: 'Riley Example', email: 'riley@example.com' },
+    })
+    expect(getAccessToken()).toBe('signup-token')
   })
 
   it('shares concurrent startup refresh calls', async () => {

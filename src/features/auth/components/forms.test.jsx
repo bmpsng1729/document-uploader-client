@@ -9,15 +9,10 @@ import { LoginForm } from './LoginForm.jsx'
 const authMocks = vi.hoisted(() => ({
   signup: vi.fn(),
   login: vi.fn(),
-  loginWithGoogle: vi.fn(),
 }))
 
 vi.mock('../context/useAuth.js', () => ({
   useAuth: () => authMocks,
-}))
-
-vi.mock('@react-oauth/google', () => ({
-  GoogleLogin: () => <button type="button">Continue with Google</button>,
 }))
 
 function renderForm(component) {
@@ -32,7 +27,14 @@ describe('SignupForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     authMocks.signup.mockResolvedValue({})
-    authMocks.loginWithGoogle.mockResolvedValue({})
+  })
+
+  it('does not render a Google sign-in option', () => {
+    renderForm(<SignupForm onSuccess={vi.fn()} />)
+
+    expect(
+      screen.queryByRole('button', { name: /google/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('shows validation errors and blocks invalid values', async () => {
@@ -71,11 +73,36 @@ describe('SignupForm', () => {
       email: 'riley@example.com',
       password: 'secure123',
     })
-    resolveSignup({})
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce())
+    resolveSignup({
+      accessToken: 'signup-token',
+      user: {
+        id: 'user-1',
+        name: 'Riley Example',
+        email: 'riley@example.com',
+      },
+    })
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(true))
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Account created successfully.',
+      'Account created and signed in successfully.',
     )
+  })
+
+  it('shows a success toast and asks the user to log in when signup creates no session', async () => {
+    const user = userEvent.setup()
+    authMocks.signup.mockResolvedValue({ authenticated: false })
+    const onSuccess = vi.fn()
+    renderForm(<SignupForm onSuccess={onSuccess} />)
+
+    await user.type(screen.getByLabelText('Full name'), 'Riley Example')
+    await user.type(screen.getByLabelText('Email'), 'riley@example.com')
+    await user.type(screen.getByLabelText('Password'), 'secure123')
+    await user.type(screen.getByLabelText('Confirm password'), 'secure123')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Account created. Please log in.',
+    )
+    expect(onSuccess).toHaveBeenCalledWith(false)
   })
 
   it('shows the friendly duplicate-email message', async () => {
@@ -120,7 +147,14 @@ describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     authMocks.login.mockResolvedValue({})
-    authMocks.loginWithGoogle.mockResolvedValue({})
+  })
+
+  it('does not render a Google sign-in option', () => {
+    renderForm(<LoginForm />)
+
+    expect(
+      screen.queryByRole('button', { name: /google/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('shows validation errors and calls login with normalized arguments', async () => {

@@ -12,7 +12,11 @@ export function SignupPage() {
         title="Create your account"
       >
         <SignupForm
-          onSuccess={() => navigate('/dashboard', { replace: true })}
+          onSuccess={(authenticated) =>
+            navigate(authenticated ? '/dashboard' : '/login', {
+              replace: true,
+            })
+          }
         />
       </AuthCard>
     </AuthLayout>

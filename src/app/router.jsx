@@ -6,7 +6,9 @@ import { PublicOnlyRoute } from '../features/auth/routes/PublicOnlyRoute.jsx'
 import { DashboardPage } from '../pages/DashboardPage.jsx'
 import { HomePage } from '../pages/HomePage.jsx'
 import { NotFoundPage } from '../pages/NotFoundPage.jsx'
+import { UploadPage } from '../pages/UploadPage.jsx'
 
+//TODO:- implement this using browse-router
 export function AppRouter() {
   return (
     <Routes>
@@ -34,6 +36,14 @@ export function AppRouter() {
           </ProtectedRoute>
         }
         path="/dashboard"
+      />
+      <Route
+        element={
+          <ProtectedRoute>
+            <UploadPage />
+          </ProtectedRoute>
+        }
+        path="/documents/upload"
       />
       <Route element={<NotFoundPage />} path="*" />
     </Routes>

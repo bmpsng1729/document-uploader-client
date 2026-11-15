@@ -1,14 +1,13 @@
 # Document Vault authentication client
 
-The client contains a public home page, email/password signup and login, Google
-sign-in, a protected dashboard placeholder, and a not-found page. User data and
+The client contains a public home page, email/password signup and login, a
+protected dashboard placeholder, and a not-found page. User data and
 authentication are owned by the Spring Boot API.
 
 ## Setup
 
 1. Use Node.js 20.19+ or 22.12+.
-2. Copy `.env.example` to `.env` and set `VITE_API_BASE_URL` and
-   `VITE_GOOGLE_CLIENT_ID`.
+2. Copy `.env.example` to `.env` and set `VITE_API_BASE_URL`.
 3. Configure the backend to allow the exact frontend origin through CORS with
    credentials enabled. Do not use a wildcard origin when credentials are
    enabled.

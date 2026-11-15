@@ -6,14 +6,12 @@ import { useToast } from '../../../app/ToastContext.js'
 import { signupSchema } from '../schemas/authSchemas.js'
 import { mapAuthError, mapAuthFieldErrors } from '../utils/mapAuthError.js'
 import { useAuth } from '../context/useAuth.js'
-import { AuthDivider } from './AuthDivider.jsx'
 import { FormError } from './FormError.jsx'
-import { GoogleButton } from './GoogleButton.jsx'
 import { PasswordInput } from './PasswordInput.jsx'
 import { TextField } from './TextField.jsx'
 
 export function SignupForm({ onSuccess }) {
-  const { signup, loginWithGoogle } = useAuth()
+  const { signup } = useAuth()
   const { showSuccess } = useToast()
   const [formError, setFormError] = useState('')
   const {
@@ -26,13 +24,18 @@ export function SignupForm({ onSuccess }) {
   async function submit(values) {
     setFormError('')
     try {
-      await signup({
+      const response = await signup({
         name: values.name,
         email: values.email,
         password: values.password,
       })
-      showSuccess('Account created successfully.')
-      onSuccess()
+      const authenticated = response?.authenticated !== false
+      showSuccess(
+        authenticated
+          ? 'Account created and signed in successfully.'
+          : 'Account created. Please log in.',
+      )
+      onSuccess(authenticated)
     } catch (error) {
       const fieldErrors = mapAuthFieldErrors(error)
       for (const [field, message] of Object.entries(fieldErrors)) {
@@ -42,17 +45,6 @@ export function SignupForm({ onSuccess }) {
         }
       }
       setFormError(mapAuthError(error, 'signup'))
-    }
-  }
-
-  async function submitGoogle(idToken) {
-    setFormError('')
-    try {
-      await loginWithGoogle(idToken)
-      showSuccess('Signed in successfully.')
-      onSuccess()
-    } catch (error) {
-      setFormError(mapAuthError(error, 'google'))
     }
   }
 
@@ -104,8 +96,6 @@ export function SignupForm({ onSuccess }) {
         </button>
       </form>
 
-      <AuthDivider />
-      <GoogleButton onCredential={submitGoogle} />
       <p className="text-center text-sm text-muted">
         Already have an account?{' '}
         <Link

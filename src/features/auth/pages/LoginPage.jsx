@@ -2,7 +2,8 @@ import { AuthLayout } from '../components/AuthLayout.jsx'
 import { AuthCard } from '../components/AuthCard.jsx'
 import { LoginForm } from '../components/LoginForm.jsx'
 
-export function LoginPage() {
+export function 
+LoginPage() {
   return (
     <AuthLayout>
       <AuthCard

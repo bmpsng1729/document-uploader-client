@@ -7,14 +7,12 @@ import { loginSchema } from '../schemas/authSchemas.js'
 import { mapAuthError, mapAuthFieldErrors } from '../utils/mapAuthError.js'
 import { safeRedirect } from '../utils/safeRedirect.js'
 import { useAuth } from '../context/useAuth.js'
-import { AuthDivider } from './AuthDivider.jsx'
 import { FormError } from './FormError.jsx'
-import { GoogleButton } from './GoogleButton.jsx'
 import { PasswordInput } from './PasswordInput.jsx'
 import { TextField } from './TextField.jsx'
 
 export function LoginForm() {
-  const { login, loginWithGoogle } = useAuth()
+  const { login } = useAuth()
   const { showSuccess } = useToast()
   const location = useLocation()
   const navigate = useNavigate()
@@ -44,17 +42,6 @@ export function LoginForm() {
         }
       }
       setFormError(mapAuthError(error, 'login'))
-    }
-  }
-
-  async function submitGoogle(idToken) {
-    setFormError('')
-    try {
-      await loginWithGoogle(idToken)
-      showSuccess('Signed in successfully.')
-      completeLogin()
-    } catch (error) {
-      setFormError(mapAuthError(error, 'google'))
     }
   }
 
@@ -92,8 +79,6 @@ export function LoginForm() {
         </button>
       </form>
 
-      <AuthDivider />
-      <GoogleButton onCredential={submitGoogle} />
       <p className="text-center text-sm text-muted">
         Don’t have an account?{' '}
         <Link
